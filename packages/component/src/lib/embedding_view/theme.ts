@@ -9,6 +9,8 @@ export interface EmbeddingViewTheme {
   clusterLabelOutlineColor: string;
   /** Opacity for cluster labels. */
   clusterLabelOpacity: number;
+  /** Color for points that do not match the filter when `filterMode` is `"highlight"`. */
+  filteredOutPointColor: string;
   /** Whether to show the status bar at the bottom. */
   statusBar: boolean;
   /** Color for status bar text. */
@@ -32,6 +34,7 @@ const defaultThemeConfig: { light: EmbeddingViewTheme; dark: EmbeddingViewTheme 
     clusterLabelColor: "#000",
     clusterLabelOutlineColor: "rgba(255,255,255,0.8)",
     clusterLabelOpacity: 0.8,
+    filteredOutPointColor: "rgba(160,160,160,0.25)",
     statusBar: true,
     statusBarTextColor: "#525252",
     statusBarBackgroundColor: "rgba(255,255,255,0.9)",
@@ -42,6 +45,7 @@ const defaultThemeConfig: { light: EmbeddingViewTheme; dark: EmbeddingViewTheme 
     clusterLabelColor: "#ccc",
     clusterLabelOutlineColor: "rgba(0,0,0,0.8)",
     clusterLabelOpacity: 0.8,
+    filteredOutPointColor: "rgba(110,110,110,0.25)",
     statusBar: true,
     statusBarTextColor: "#d9d9d9",
     statusBarBackgroundColor: "rgba(0,0,0,0.9)",

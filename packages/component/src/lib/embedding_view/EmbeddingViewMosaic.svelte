@@ -7,10 +7,12 @@
 
   import EmbeddingViewImpl from "./EmbeddingViewImpl.svelte";
 
+  import { defaultCategoryColors } from "../colors.js";
   import { ImageSummarizer } from "../image_summarizer/image_summarizer.js";
   import { type Point, type Rectangle, type ViewportState } from "../utils.js";
   import type { EmbeddingViewMosaicProps } from "./embedding_view_mosaic_api.js";
   import { IMAGE_LABEL_SIZE } from "./labels.js";
+  import { resolveTheme } from "./theme.js";
   import {
     DataPointQuery,
     predicateForDataPoints,
@@ -36,6 +38,7 @@
     importance = null,
     identifier = null,
     filter = null,
+    filterMode = null,
     categoryColors = null,
     tooltip = null,
     additionalFields = null,
@@ -66,15 +69,47 @@
   let maxDensity: number = $state.raw(1);
   let defaultViewportState: ViewportState | null = $state.raw(null);
 
+  // Whether the current data includes points outside the filter (in an extra category), and how many are inside it.
+  let isHighlightData: boolean = $state.raw(false);
+  let highlightedCount: number | null = $state.raw(null);
+
   let effectiveTooltip: DataPoint | null = $state.raw(null);
   let effectiveSelection: DataPoint[] | null = $state.raw(null);
   let effectiveRangeSelection: Rectangle | Point[] | null = $state.raw(null);
 
   let clientId: any | null = $state.raw(null);
 
+  /** The maximum number of categories the renderer supports. */
+  const MAX_CATEGORY_COUNT = 256;
+
+  function countNotEqual(array: Uint8Array | null, value: number): number {
+    if (array == null) {
+      return 0;
+    }
+    let count = 0;
+    for (let i = 0; i < array.length; i++) {
+      if (array[i] != value) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  let resolvedTheme = $derived(resolveTheme(theme, config?.colorScheme ?? "light"));
+
+  let effectiveCategoryCount = $derived(isHighlightData ? categoryCount + 1 : categoryCount);
+  let effectiveCategoryColors = $derived.by(() => {
+    if (!isHighlightData) {
+      return categoryColors;
+    }
+    let defaults = defaultCategoryColors(categoryCount);
+    let colors = Array.from({ length: categoryCount }, (_, i) => categoryColors?.[i] ?? defaults[i]);
+    return [...colors, resolvedTheme.filteredOutPointColor];
+  });
+
   $effect(() => {
     // Let Svelte track the dependencies.
-    let deps = { coordinator: coordinator, source: { table, x, y, category } };
+    let deps = { coordinator: coordinator, source: { table, x, y, category }, filterMode };
 
     let client: { destroy: () => void } | null = null;
     let didDestroy = false;
@@ -91,18 +126,33 @@
       maxDensity = approxDensity.maxDensity;
       categoryCount = approxDensity.categoryCount;
 
+      // In highlight mode, points outside the filter are assigned an extra category after the existing ones.
+      // Category values are stored as UTINYINT, so this needs a free value.
+      let highlight = deps.filterMode == "highlight" && approxDensity.categoryCount < MAX_CATEGORY_COUNT;
+      let filteredOutCategory = approxDensity.categoryCount;
+
       // A client is a thing that queries data from a selection with user-defined query
       client = makeClient({
         coordinator: deps.coordinator,
         selection: filter ?? undefined,
         query: (predicate) => {
-          return SQL.Query.from(source.table)
-            .select({
-              x: SQL.sql`${SQL.column(source.x)}::FLOAT`,
-              y: SQL.sql`${SQL.column(source.y)}::FLOAT`,
-              ...(source.category != null ? { c: SQL.sql`${SQL.column(source.category)}::UTINYINT` } : {}),
-            })
-            .where(predicate);
+          let query = SQL.Query.from(source.table).select({
+            x: SQL.sql`${SQL.column(source.x)}::FLOAT`,
+            y: SQL.sql`${SQL.column(source.y)}::FLOAT`,
+          });
+          let categoryExpr = source.category != null ? SQL.sql`${SQL.column(source.category)}::UTINYINT` : null;
+          if (!highlight) {
+            return query.select(categoryExpr != null ? { c: categoryExpr } : {}).where(predicate);
+          }
+          // Keep all points, and move the ones that don't match the filter to the extra category.
+          let clauses = [predicate].flat().filter((x) => x != null);
+          let inFilter = categoryExpr ?? SQL.sql`0::UTINYINT`;
+          return query.select({
+            c:
+              clauses.length > 0
+                ? SQL.sql`${SQL.cond(SQL.and(clauses.map((x) => SQL.asVerbatim(x))), inFilter, filteredOutCategory)}::UTINYINT`
+                : inFilter,
+          });
         },
         queryResult: (data: any) => {
           let xArray = data.getChild("x").toArray();
@@ -121,6 +171,8 @@
           xData = xArray;
           yData = yArray;
           categoryData = categoryArray;
+          isHighlightData = highlight;
+          highlightedCount = highlight ? countNotEqual(categoryArray, filteredOutCategory) : null;
           updateTooltip(null);
           updateSelection(null);
         },
@@ -494,8 +546,9 @@
   data={{ x: xData, y: yData, category: categoryData }}
   totalCount={totalCount}
   maxDensity={maxDensity}
-  categoryCount={categoryCount}
-  categoryColors={categoryColors}
+  categoryCount={effectiveCategoryCount}
+  categoryColors={effectiveCategoryColors}
+  pointCount={highlightedCount}
   defaultViewportState={defaultViewportState}
   querySelection={querySelection}
   queryClusterLabels={queryClusterLabels}

@@ -15,6 +15,8 @@
     config: EmbeddingViewConfig | null;
     totalCount: number | null;
     maxDensity: number | null;
+    /** The number of points to show in the status bar. Defaults to the number of points in `data`. */
+    pointCount?: number | null;
     labels?: Label[] | null;
     queryClusterLabels: ((clusters: Rectangle[][]) => Promise<(LabelContent | null)[]>) | null;
     tooltip: Selection | null;
@@ -132,6 +134,7 @@
     config = null,
     totalCount = null,
     maxDensity = null,
+    pointCount = null,
     labels = null,
     queryClusterLabels = null,
     tooltip = null,
@@ -834,7 +837,7 @@
       resolvedTheme={resolvedTheme}
       statusMessage={statusMessage ?? webGPUError}
       distancePerPoint={1 / (pointLocation(1, 0).x - pointLocation(0, 0).x)}
-      pointCount={data.x.length}
+      pointCount={pointCount ?? data.x.length}
       selectionMode={selectionMode}
       onSelectionMode={(v) => (selectionMode = v)}
     />

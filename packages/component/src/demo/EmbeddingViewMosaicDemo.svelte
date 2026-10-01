@@ -10,6 +10,7 @@
 
   let mode: "points" | "density" = $state("density");
   let colorScheme: "light" | "dark" = $state("light");
+  let filterMode: "filter" | "highlight" = $state("filter");
   let minimumDensity: number = $state(1 / 16);
   let pointCount: number = $state(0);
   let ready = $state(false);
@@ -134,6 +135,14 @@
       </select>
     </label>
 
+    <label style="display:flex;align-items:center;gap:4px">
+      Filter Mode:
+      <select bind:value={filterMode}>
+        <option value="filter">Filter</option>
+        <option value="highlight">Highlight</option>
+      </select>
+    </label>
+
     <input type="range" bind:value={minimumDensity} min={0} max={0.2} step={0.0001} />
     {minimumDensity.toFixed(4)}
   </div>
@@ -156,6 +165,7 @@
             onViewportState={(v) => (viewportState = v)}
             rangeSelection={brush}
             filter={brush}
+            filterMode={filterMode}
           />
         </div>
       {/if}

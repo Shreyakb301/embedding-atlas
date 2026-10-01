@@ -142,7 +142,8 @@ export function makeModuleUniforms(df: Dataflow, device: DataflowNode<GPUDevice>
         r = Math.pow(r, gamma);
         g = Math.pow(g, gamma);
         b = Math.pow(b, gamma);
-        writer.vec4f(r, g, b, a);
+        // The shaders expect premultiplied alpha.
+        writer.vec4f(r * a, g * a, b * a, a);
       }
       device.queue.writeBuffer(uniformBuffer, 0, buffer, 0, writer.byteOffset());
     }),

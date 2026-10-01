@@ -261,6 +261,7 @@
     coordinator={context.coordinator}
     table={dataTable}
     filter={filter}
+    filterMode={spec.filterMode ?? "filter"}
     rangeSelection={filter}
     identifier={rowId}
     x={spec.data.x}
@@ -414,6 +415,20 @@
                 step={0.05}
               />
             {/if}
+          </div>
+          <div class="text-slate-500 dark:text-slate-400 select-none">Filtered Points</div>
+          <div class="flex gap-2 items-center">
+            <Select
+              value={spec.filterMode ?? "filter"}
+              onChange={(v) =>
+                onSpecChange((draft) => {
+                  draft.filterMode = v;
+                })}
+              options={[
+                { value: "filter", label: "Hide" },
+                { value: "highlight", label: "Show in Gray" },
+              ]}
+            />
           </div>
           <div class="text-slate-500 dark:text-slate-400 select-none">Point Size</div>
           <div class="flex gap-2 items-center">

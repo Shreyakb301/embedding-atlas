@@ -58,6 +58,12 @@ export interface EmbeddingViewMosaicProps {
   /** A Mosaic `Selection` object to filter the contents of this view. */
   filter?: Selection | null;
 
+  /** How to show points that do not match `filter`.
+   *  With `"filter"` (the default), they are hidden.
+   *  With `"highlight"`, they are shown in the theme's `filteredOutPointColor`,
+   *  so the matching points keep their context in the full embedding. */
+  filterMode?: "filter" | "highlight" | null;
+
   /** Labels to display on the embedding view.
    *  Each label must have `x`, `y`, and `text` properties,
    *  and optionally `level` and `priority`. */

@@ -23,6 +23,8 @@ export interface EmbeddingSpec {
   };
 
   mode?: "points" | "density";
+  /** How to show points that do not match the current filter: hidden ("filter") or grayed out ("highlight"). Default: "filter". */
+  filterMode?: "filter" | "highlight";
   minimumDensity?: number;
   pointSize?: number;
   /** Maximum number of points to render (for downsampling). Default: 4000000. Set to null to disable. */
